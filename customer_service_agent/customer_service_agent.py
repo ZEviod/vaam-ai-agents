@@ -16,6 +16,7 @@ import re
 from datetime import datetime
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
+from dotenv import load_dotenv
 
 class SmartCustomerServiceAgent:
     def __init__(self):
@@ -427,7 +428,8 @@ Response:"""
             # Use a better free model for conversation
             model_url = "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium"
             
-            headers = {"Authorization": f"Bearer {os.getenv('HF_API_TOKEN', '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')}"}
+            load_dotenv()
+            headers = {"Authorization": f"Bearer {os.getenv('HF_API_TOKEN')}"}
             
             payload = {
                 "inputs": prompt,
