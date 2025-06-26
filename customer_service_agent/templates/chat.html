@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaam AI Customer Service Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #chat {
+            width: 450px;
+            max-width: 90vw;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .chat-header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .msg {
+            margin: 15px 0;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .user {
+            justify-content: flex-end;
+        }
+
+        .bot {
+            justify-content: flex-start;
+        }
+
+        .msg-content {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .user .msg-content {
+            background: #2196F3;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot .msg-content {
+            background: #e9ecef;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .ticket-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #856404;
+        }
+
+        .progress-indicator {
+            background: #e3f2fd;
+            border: 1px solid #2196F3;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #1565C0;
+            font-weight: 500;
+        }
+
+        .typing-indicator {
+            display: none;
+            margin: 15px 0;
+        }
+
+        .typing-indicator .msg-content {
+            background: #e9ecef;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+
+        #input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        #input:focus {
+            border-color: #2196F3;
+        }
+
+        #send {
+            padding: 12px 24px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        #send:hover {
+            background: #1976D2;
+        }
+
+        #send:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status-indicator {
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        .status-urgent {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+
+        .status-normal {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        @media (max-width: 480px) {
+            #chat {
+                width: 100vw;
+                height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chat">
+        <div class="chat-header">
+            <h2>🚗 Vaam AI Assistant</h2>
+            <p>Smart customer service powered by AI</p>
+        </div>
+
+        <div id="messages">
+            <div class="msg bot">
+                <div class="msg-content">
+                    Hello! I'm your Vaam AI assistant. I can help you with lost items, driver concerns, billing issues,
+                    and more. How can I assist you today?
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typing">
+            <div class="msg bot">
+                <div class="msg-content">AI is thinking...</div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <input id="input" autocomplete="off" placeholder="Type your message here..." />
+            <button id="send">Send</button>
+        </div>
+    </div>
+    <script>
+        var socket = io();
+        var messages = document.getElementById('messages');
+        var input = document.getElementById('input');
+        var send = document.getElementById('send');
+        var typing = document.getElementById('typing');
+        var sessionId = 'session_' + Math.random().toString(36).substr(2, 9); function appendMessage(text, sender, extraInfo = {}) {
+            var msgDiv = document.createElement('div');
+            msgDiv.className = 'msg ' + sender;
+
+            var contentDiv = document.createElement('div');
+            contentDiv.className = 'msg-content';
+            contentDiv.innerHTML = text.replace(/\n/g, '<br>');
+
+            msgDiv.appendChild(contentDiv);
+
+            // Add conversation progress indicator
+            if (extraInfo.conversation_state && sender === 'bot') {
+                var stage = extraInfo.conversation_state.stage;
+                var issueType = extraInfo.conversation_state.issue_type;
+                var collectedDetails = extraInfo.conversation_state.collected_details || [];
+
+                if (stage && stage !== 'initial') {
+                    var progressDiv = document.createElement('div');
+                    progressDiv.className = 'progress-indicator';
+
+                    var stageText = '';
+                    if (stage === 'gathering_details') {
+                        stageText = `📋 Collecting details for ${issueType || 'your issue'}`;
+                        if (collectedDetails.length > 0) {
+                            stageText += ` (${collectedDetails.length} details collected)`;
+                        }
+                    } else if (stage === 'processing') {
+                        stageText = `⚙️ Processing your ${issueType || 'request'}...`;
+                    } else if (stage === 'resolved') {
+                        stageText = `✅ Issue resolved`;
+                    }
+
+                    progressDiv.innerHTML = stageText;
+                    msgDiv.appendChild(progressDiv);
+                }
+            }
+
+            // Add ticket info if provided
+            if (extraInfo.ticket_info) {
+                var ticketDiv = document.createElement('div');
+                ticketDiv.className = 'ticket-info';
+                ticketDiv.innerHTML = `<strong>🎫 Ticket Created:</strong> ${extraInfo.ticket_info.ticket_id}<br>` +
+                    `<strong>📋 Category:</strong> ${extraInfo.ticket_info.issue_category || 'General'}<br>` +
+                    `<strong>📊 Status:</strong> Active`;
+                msgDiv.appendChild(ticketDiv);
+            }
+
+            messages.appendChild(msgDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function showTyping() {
+            typing.style.display = 'block';
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function hideTyping() {
+            typing.style.display = 'none';
+        }
+
+        function sendMessage() {
+            var msg = input.value.trim();
+            if (msg) {
+                appendMessage(msg, 'user');
+                showTyping();
+                send.disabled = true;
+
+                socket.emit('user_message', {
+                    message: msg,
+                    session_id: sessionId
+                });
+                input.value = '';
+            }
+        }
+
+        send.onclick = sendMessage;
+
+        input.addEventListener('keyup', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        }); socket.on('bot_response', function (data) {
+            hideTyping();
+            send.disabled = false;
+
+            appendMessage(data.message, 'bot', {
+                conversation_state: data.conversation_state,
+                ticket_info: data.ticket_info
+            });
+
+            // Auto-focus input for next message
+            input.focus();
+        });
+
+        // Auto-focus input when page loads
+        window.onload = function () {
+            input.focus();
+        };
+    </script>
+</body>
+
+</html>

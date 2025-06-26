@@ -1,0 +1,17 @@
+[
+  {
+    "phone_number": "+447700900127",
+    "message_type": "otp",
+    "priority": "HIGH",
+    "preferred_channel": "SMS",
+    "user_id": "user789",
+    "callback_url": "https://api.example.com/webhook"
+  },
+  {
+    "phone_number": "+447700900128",
+    "message_type": "notification",
+    "content": "Welcome to our service!",
+    "priority": "MEDIUM",
+    "preferred_channel": "Email"
+  }
+]

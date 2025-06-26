@@ -1,0 +1,6 @@
+email,name,age,city,country,segment,preferences,engagement_score,custom_fields
+driver1@vaam.com,John Driver,30,London,UK,drivers,"{""notifications"": true, ""bonuses"": true}",8.5,"{""vehicle_type"": ""sedan""}"
+driver2@vaam.com,Mike Driver,45,London,UK,drivers,"{""notifications"": true, ""traffic_alerts"": true}",7.8,"{""vehicle_type"": ""suv""}"
+rider1@vaam.com,Sarah Rider,25,London,UK,riders,"{""discounts"": true, ""safety"": true}",7.2,"{""payment_method"": ""card""}"
+rider2@vaam.com,Tom Rider,35,London,UK,riders,"{""notifications"": false, ""premium"": true}",9.1,"{""payment_method"": ""digital_wallet""}"
+newuser@vaam.com,New User,28,London,UK,riders,"{""discounts"": true}",0.0,"{""signup_date"": ""2025-06-23""}"
